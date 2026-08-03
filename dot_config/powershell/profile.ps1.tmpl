@@ -1,0 +1,34 @@
+# Managed by chezmoi. The real $PROFILE is a stub that dot-sources this file,
+# which makes the setup immune to OneDrive redirecting the Documents folder.
+
+$env:EDITOR = if (Get-Command nvim -ErrorAction SilentlyContinue) { 'nvim' } else { 'vim' }
+
+Set-PSReadLineOption -PredictionSource History -EditMode Windows
+Set-PSReadLineKeyHandler -Key UpArrow   -Function HistorySearchBackward
+Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+
+{{ if .enableSecrets -}}
+$secretsFile = "$env:LOCALAPPDATA\dotfiles\env.ps1"
+if (Test-Path $secretsFile) { . $secretsFile }
+{{ end -}}
+
+# Tier-High secrets: fetched on demand, never written to disk.
+function secret {
+    param([Parameter(Mandatory)][string]$Item)
+    bw get password $Item
+}
+
+Set-Alias ll Get-ChildItem
+function gs  { git status -sb }
+function gd  { git diff }
+function gl  { git log --oneline --graph --decorate -20 }
+function czd { chezmoi diff }
+function cza { chezmoi apply -v }
+function czu { chezmoi update -v }
+
+if (Get-Command zoxide  -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& { (zoxide init powershell | Out-String) })
+}
+
+$localProfile = "$HOME\.pwsh_profile.local.ps1"
+if (Test-Path $localProfile) { . $localProfile }

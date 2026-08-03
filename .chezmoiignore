@@ -1,0 +1,43 @@
+{{- /* Patterns match TARGET paths, relative to home. Always a template. */ -}}
+
+README.md
+LICENSE
+bootstrap.sh
+bootstrap.ps1
+.github
+.gitleaks.toml
+.gitattributes
+.gitignore
+
+{{ if ne .chezmoi.os "windows" -}}
+AppData
+.config/powershell
+10-packages.ps1
+30-ps-profile-stub.ps1
+90-secure.ps1
+{{ end -}}
+
+{{ if eq .chezmoi.os "windows" -}}
+10-packages.sh
+20-macos-defaults.sh
+90-secure.sh
+{{ end -}}
+
+{{ if eq .chezmoi.os "windows" -}}
+.zshrc
+.zprofile
+.config/env.sh
+.config/tmux
+.ssh
+.vim
+.vimrc
+{{ end -}}
+
+{{ if not .enableSecrets -}}
+.config/env.sh
+AppData/Local/dotfiles/env.ps1
+{{ end -}}
+
+{{ if .isServer -}}
+.vim/colors
+{{ end -}}

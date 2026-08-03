@@ -1,0 +1,29 @@
+# Managed by chezmoi. Host aliases only - no secrets live here.
+# Private keys are generated per-machine and are NEVER synced.
+
+Host *
+	AddKeysToAgent yes
+{{- if .isDarwin }}
+	UseKeychain yes
+{{- end }}
+	IdentitiesOnly yes
+	ServerAliveInterval 60
+	ServerAliveCountMax 3
+	HashKnownHosts yes
+
+# Personal GitHub
+Host github-personal github.com
+	HostName github.com
+	User git
+	IdentityFile ~/.ssh/id_ed25519_personal
+
+{{ if .isWork -}}
+# Work GitHub
+Host github-work
+	HostName github.com
+	User git
+	IdentityFile ~/.ssh/id_ed25519_work
+{{ end -}}
+
+# Machine-local hosts that should never be committed
+Include ~/.ssh/config.local

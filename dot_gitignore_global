@@ -1,0 +1,18 @@
+# Referenced by gitconfig core.excludesfile
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo
+.idea/
+.vscode/
+.direnv/
+.envrc.local
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/

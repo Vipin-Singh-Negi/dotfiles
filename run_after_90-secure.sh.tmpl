@@ -1,0 +1,20 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+# No `once`/`onchange`: this runs on EVERY apply so permissions can never drift.
+
+umask 077
+for f in "$HOME/.config/env.sh" "$HOME/.config/chezmoi/key.txt"; do
+  [ -f "$f" ] && chmod 600 "$f"
+done
+[ -d "$HOME/.ssh" ] && chmod 700 "$HOME/.ssh"
+for f in "$HOME/.ssh"/id_* ; do
+  [ -f "$f" ] || continue
+  case "$f" in *.pub) chmod 644 "$f" ;; *) chmod 600 "$f" ;; esac
+done
+[ -f "$HOME/.ssh/config" ] && chmod 600 "$HOME/.ssh/config"
+exit 0
+{{ else -}}
+#!/usr/bin/env bash
+exit 0
+{{ end -}}

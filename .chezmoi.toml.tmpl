@@ -1,0 +1,84 @@
+{{/* ------------------------------------------------------------------ */}}
+{{/* Platform detection                                                   */}}
+{{/* ------------------------------------------------------------------ */}}
+{{- $os        := .chezmoi.os -}}
+{{- $isWindows := eq $os "windows" -}}
+{{- $isDarwin  := eq $os "darwin" -}}
+{{- $isWSL     := and (eq $os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{- $home      := .chezmoi.homeDir | replace "\\" "/" -}}
+
+{{/* CI renders every template without touching a vault. */}}
+{{- $ciMode := ne (env "CHEZMOI_CI") "" -}}
+
+{{/* ------------------------------------------------------------------ */}}
+{{/* Prompts - asked once per machine, cached into chezmoi.toml           */}}
+{{/* ------------------------------------------------------------------ */}}
+{{/* No PII in the repo: identity is prompted per machine and cached only in   */}}
+{{/* the generated ~/.config/chezmoi/chezmoi.toml, which is never committed.   */}}
+{{/* Tip: use your GitHub noreply address so commits don't leak your email.    */}}
+{{- $name    := "CI User" -}}
+{{- $email   := "ci@example.invalid" -}}
+{{- $profile := "personal" -}}
+{{- $secrets := false -}}
+{{- if not $ciMode -}}
+{{-   $name    = promptStringOnce . "name"  "Name for git commits" -}}
+{{-   $email   = promptStringOnce . "email" "Email for git commits (prefer ID+user@users.noreply.github.com)" -}}
+{{-   $profile = promptChoiceOnce . "profile" "Machine profile" (list "personal" "work" "server") -}}
+{{-   $secrets = promptBoolOnce   . "enableSecrets" "Enable Bitwarden-backed secrets (needs vault items to exist)" -}}
+{{- end -}}
+
+{{/* Secret backend: rbw is not viable on native Windows -> official bw. */}}
+{{- $backend := "rbw" -}}
+{{- if $isWindows }}{{ $backend = "bw" }}{{ end -}}
+
+encryption = "age"
+
+[data]
+    name          = {{ $name    | quote }}
+    email         = {{ $email   | quote }}
+    profile       = {{ $profile | quote }}
+    isPersonal    = {{ eq $profile "personal" }}
+    isWork        = {{ eq $profile "work" }}
+    isServer      = {{ eq $profile "server" }}
+    isWindows     = {{ $isWindows }}
+    isDarwin      = {{ $isDarwin }}
+    isWSL         = {{ $isWSL }}
+    isGui         = {{ and (ne $profile "server") (not $isWSL) }}
+    ciMode        = {{ $ciMode }}
+    enableSecrets = {{ and $secrets (not $ciMode) }}
+    secretBackend = {{ $backend | quote }}
+
+    home      = {{ $home | quote }}
+{{- if $isWindows }}
+    configDir = {{ printf "%s/AppData/Local/dotfiles" $home | quote }}
+    binDir    = {{ printf "%s/AppData/Local/bin"      $home | quote }}
+{{- else }}
+    configDir = {{ printf "%s/.config"    $home | quote }}
+    binDir    = {{ printf "%s/.local/bin" $home | quote }}
+{{- end }}
+
+[age]
+    identity  = {{ printf "%s/.config/chezmoi/key.txt" $home | quote }}
+    recipient = "age1REPLACE_ME_WITH_YOUR_PUBLIC_KEY"
+
+# .ps1 scripts need an explicit interpreter on non-Windows and benefit from
+# -NoProfile on Windows so provisioning never depends on the profile it writes.
+[interpreters.ps1]
+    command = "pwsh"
+    args    = ["-NoLogo", "-NoProfile"]
+
+{{- if $isWindows }}
+
+[bitwarden]
+    command = "bw"
+    unlock  = "auto"
+{{- end }}
+
+# Never auto-commit or auto-push: the human diff is the last gate before a
+# leaked credential becomes permanent git history.
+[git]
+    autoCommit = false
+    autoPush   = false
+
+[diff]
+    pager = "less -R"

@@ -1,0 +1,13 @@
+# packages hash: {{ .packages | toJson | sha256sum }}
+$ErrorActionPreference = 'Stop'
+Write-Host '==> Provisioning packages (windows)'
+
+{{ range .packages.windows.winget -}}
+winget install --id {{ . }} -e --source winget --accept-package-agreements --accept-source-agreements --silent
+{{ end }}
+if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+    Invoke-RestMethod get.scoop.sh | Invoke-Expression
+}
+scoop install {{ .packages.windows.scoop | join " " }}
+
+Write-Host '==> Packages done'

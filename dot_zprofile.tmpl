@@ -1,0 +1,11 @@
+{{ if .isDarwin -}}
+# Homebrew (Apple Silicon and Intel)
+for __brew in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+  [ -x "$__brew" ] && eval "$("$__brew" shellenv)" && break
+done
+unset __brew
+{{ else -}}
+# Linuxbrew, if present
+[ -x /home/linuxbrew/.linuxbrew/bin/brew ] && \
+  eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+{{ end -}}

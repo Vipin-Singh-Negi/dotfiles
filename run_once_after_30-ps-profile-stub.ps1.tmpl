@@ -1,0 +1,9 @@
+# $PROFILE lives under Documents, which OneDrive / Known Folder Move relocates.
+# Resolve it at runtime and write a one-line stub pointing at the chezmoi-managed
+# profile, so redirection can never break the setup again.
+$ErrorActionPreference = 'Stop'
+$target = $PROFILE.CurrentUserAllHosts
+New-Item -ItemType Directory -Force -Path (Split-Path $target) | Out-Null
+Set-Content -Path $target -Encoding UTF8 `
+    -Value ". `"$env:USERPROFILE\.config\powershell\profile.ps1`""
+Write-Host "==> PowerShell profile stub written to $target"

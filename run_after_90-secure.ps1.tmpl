@@ -1,0 +1,18 @@
+# chezmoi's private_ attribute is a SILENT NO-OP on Windows (ACLs, not POSIX
+# modes). This script is the only thing standing between your rendered secrets
+# and default inherited permissions. No `once`/`onchange`: runs every apply.
+$ErrorActionPreference = 'Continue'
+$me = "$env:USERDOMAIN\$env:USERNAME"
+
+$targets = @(
+    "$env:LOCALAPPDATA\dotfiles\env.ps1",
+    "$env:USERPROFILE\.config\chezmoi\key.txt",
+    "$env:USERPROFILE\.ssh"
+)
+
+foreach ($t in $targets) {
+    if (Test-Path $t) {
+        icacls $t /inheritance:r /grant:r "${me}:(OI)(CI)F" | Out-Null
+        Write-Host "==> Locked ACL on $t"
+    }
+}

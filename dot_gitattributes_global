@@ -1,0 +1,7 @@
+# Referenced by gitconfig core.attributesfile
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+*.age binary

@@ -1,0 +1,23 @@
+{{ if and .isDarwin .isGui -}}
+#!/usr/bin/env bash
+set -euo pipefail
+echo "==> Applying macOS defaults"
+
+defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
+defaults write NSGlobalDomain KeyRepeat -int 2
+defaults write NSGlobalDomain InitialKeyRepeat -int 15
+defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+defaults write com.apple.finder AppleShowAllFiles -bool true
+defaults write com.apple.finder ShowPathbar -bool true
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock show-recents -bool false
+defaults write com.apple.screencapture location -string "$HOME/Desktop"
+defaults write com.apple.screencapture type -string "png"
+
+killall Finder Dock 2>/dev/null || true
+echo "==> macOS defaults applied"
+{{ else -}}
+#!/usr/bin/env bash
+exit 0
+{{ end -}}

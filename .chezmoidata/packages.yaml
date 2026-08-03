@@ -1,0 +1,74 @@
+# Single source of truth for provisioning on every platform.
+# The run_onchange_ scripts hash this data, so editing this file re-provisions
+# every machine on its next `chezmoi apply`.
+packages:
+  darwin:
+    brew:
+      - age
+      - bat
+      - chezmoi
+      - direnv
+      - eza
+      - fd
+      - fzf
+      - gh
+      - git
+      - gitleaks
+      - jq
+      - neovim
+      - pinentry-mac
+      - rbw
+      - ripgrep
+      - tmux
+      - zoxide
+    cask:
+      - iterm2
+      - visual-studio-code
+  linux:
+    apt:
+      - age
+      - bat
+      - direnv
+      - fd-find
+      - fzf
+      - gh
+      - git
+      - jq
+      - neovim
+      - pinentry-curses
+      - ripgrep
+      - tmux
+      - zoxide
+    pacman:
+      - age
+      - bat
+      - direnv
+      - eza
+      - fd
+      - fzf
+      - github-cli
+      - git
+      - jq
+      - neovim
+      - rbw
+      - ripgrep
+      - tmux
+      - zoxide
+  windows:
+    winget:
+      - Git.Git
+      - GitHub.cli
+      - FiloSottile.age
+      - Microsoft.PowerShell
+      - Neovim.Neovim
+      - twpayne.chezmoi
+    scoop:
+      - bat
+      - bitwarden-cli
+      - eza
+      - fd
+      - fzf
+      - gitleaks
+      - jq
+      - ripgrep
+      - zoxide
