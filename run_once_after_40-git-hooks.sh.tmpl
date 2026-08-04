@@ -1,0 +1,18 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+# Git hooks are NOT shared by clone, so point the source repo at .githooks.
+# Without this the pre-commit leak guard silently does nothing on a new machine.
+SRC="{{ .chezmoi.sourceDir }}"
+if [ -d "$SRC/.git" ] || git -C "$SRC" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "$SRC" config core.hooksPath .githooks
+  chmod +x "$SRC/.githooks/"* 2>/dev/null || true
+  echo "==> pre-commit leak guard enabled in $SRC"
+fi
+{{ else -}}
+$SRC = "{{ .chezmoi.sourceDir }}"
+if (Test-Path (Join-Path $SRC '.git')) {
+    git -C $SRC config core.hooksPath .githooks
+    Write-Host "==> pre-commit leak guard enabled in $SRC"
+}
+{{ end -}}

@@ -1,4 +1,22 @@
+# This repo is PUBLIC. Nothing here may contain identity or credentials.
 .DS_Store
 *.swp
+
+# age identity - the one file that decrypts everything else
 key.txt
+*.key
+
+# machine-local overrides, never shared
 *.local
+.envrc
+
+# rendered secrets: only the .tmpl belongs in git
+dot_config/private_env.sh
+AppData/Local/dotfiles/env.ps1
+
+# ssh private keys are generated per-machine and never synced
+id_rsa
+id_ecdsa
+id_ed25519
+id_ed25519_*
+!*.pub

@@ -8,6 +8,7 @@ bootstrap.ps1
 .gitleaks.toml
 .gitattributes
 .gitignore
+.githooks
 
 {{ if ne .chezmoi.os "windows" -}}
 AppData

@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Pre-commit guard for a PUBLIC dotfiles repo.
+#
+# A leak here is irreversible: scrapers index public commits within minutes and
+# forks/caches survive any later force-push. This hook is the last gate.
+#
+# Enable with:  git config core.hooksPath .githooks
+# (done automatically by run_once_after_40-git-hooks.sh)
+#
+# Emergency bypass is `git commit --no-verify`. If you find yourself using it,
+# stop and work out why instead.
+set -uo pipefail
+
+RED=$'\033[1;31m'; YEL=$'\033[1;33m'; GRN=$'\033[1;32m'; OFF=$'\033[0m'
+fail=0
+
+staged() { git diff --cached --name-only --diff-filter=ACMR; }
+
+# ---------------------------------------------------------------------------
+# 1. Never commit private key material or vault artefacts, encrypted or not.
+# ---------------------------------------------------------------------------
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  base="${f##*/}"
+
+  # age identity, ssh private keys, env files. `.pub` and `.age` are fine.
+  case "$base" in
+    *.pub|*.age) continue ;;
+  esac
+
+  case "$f" in
+    *key.txt|*id_rsa*|*id_ecdsa*|*id_ed25519*|*.pem|*.p12|*.pfx|*.jks|\
+    *.envrc|*.env|.env.*|*credentials*|*secrets.yaml|*secrets.yml)
+      # An encrypted_ prefix anywhere in the path means chezmoi will age-encrypt it.
+      if [[ "$f" != *encrypted_* ]]; then
+        echo "${RED}BLOCKED${OFF} $f"
+        echo "        looks like secret material and is NOT age-encrypted."
+        echo "        Use: chezmoi add --encrypt <file>"
+        fail=1
+      fi
+      ;;
+  esac
+done < <(staged)
+
+# ---------------------------------------------------------------------------
+# 2. Never commit a rendered secrets file (only the .tmpl belongs in git).
+# ---------------------------------------------------------------------------
+while IFS= read -r f; do
+  case "$f" in
+    dot_config/private_env.sh|AppData/Local/dotfiles/env.ps1)
+      echo "${RED}BLOCKED${OFF} $f is a RENDERED secrets file; commit only the .tmpl"
+      fail=1
+      ;;
+  esac
+done < <(staged)
+
+# ---------------------------------------------------------------------------
+# 3. Literal credential patterns in staged content.
+# ---------------------------------------------------------------------------
+pat='(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{60,}|xox[baprs]-[A-Za-z0-9-]+|AGE-SECRET-KEY-1[0-9A-Z]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)'
+if git diff --cached -U0 | grep -nE "^\+" | grep -qE "$pat"; then
+  echo "${RED}BLOCKED${OFF} staged content contains what looks like a live credential:"
+  git diff --cached -U0 | grep -nE "^\+" | grep -oE "$pat" | sort -u | sed 's/^/        /'
+  fail=1
+fi
+
+# ---------------------------------------------------------------------------
+# 4. PII guard - this repo is public by choice and must stay identity-free.
+# ---------------------------------------------------------------------------
+if git diff --cached -U0 | grep -nE "^\+" \
+   | grep -vE 'example\.(com|invalid)|users\.noreply\.github\.com' \
+   | grep -qE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'; then
+  echo "${RED}BLOCKED${OFF} a real-looking email address is being committed."
+  echo "        This repo is public: use a prompt, an env var, or a"
+  echo "        ...@users.noreply.github.com address instead."
+  fail=1
+fi
+
+# ---------------------------------------------------------------------------
+# 5. gitleaks, if available. Warn loudly rather than fail-closed, because a
+#    hard failure on a missing tool trains people to use --no-verify.
+# ---------------------------------------------------------------------------
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --redact --config .gitleaks.toml >/dev/null 2>&1; then
+    echo "${RED}BLOCKED${OFF} gitleaks found secrets in the staged changes:"
+    gitleaks protect --staged --redact --config .gitleaks.toml 2>&1 | sed 's/^/        /' | head -30
+    fail=1
+  fi
+else
+  echo "${YEL}WARNING${OFF} gitleaks not installed - deep secret scan skipped."
+  echo "        Install it: brew install gitleaks | scoop install gitleaks"
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo
+  echo "${RED}Commit rejected.${OFF} This repo is PUBLIC - a leak cannot be undone."
+  exit 1
+fi
+
+echo "${GRN}pre-commit checks passed${OFF}"
+exit 0

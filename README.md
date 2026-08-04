@@ -99,6 +99,54 @@ re-provisions on its next `chezmoi apply`.
 
 ---
 
+## This repo is public — how that stays safe
+
+Secrets never live here. Values come from Bitwarden at apply time and secret
+*files* are age-encrypted, so the repo holds only instructions. Three layers
+keep it that way:
+
+**1. A pre-commit guard** (`.githooks/pre-commit`), enabled automatically by
+`run_once_after_40-git-hooks.sh`. Git hooks are not shared by `clone`, so this
+must be re-enabled on every machine — the script does it for you. It blocks:
+
+- private key material and env files that are not age-encrypted
+- rendered secrets files (only the `.tmpl` belongs in git)
+- literal AWS / GitHub / Slack tokens and `AGE-SECRET-KEY-` strings
+- any real-looking email address, so the repo stays identity-free
+- anything `gitleaks` flags in the staged diff
+
+**2. CI** re-runs `gitleaks` on every push and renders all templates on
+Ubuntu, macOS and Windows with `CHEZMOI_CI=1` (no vault access needed).
+
+**3. GitHub push protection.** Enable it — it is free on public repos and is
+the only layer that can stop a bad push server-side:
+
+> Settings → Code security → **Secret scanning** + **Push protection**
+
+Also enable, under your account → Emails:
+
+> ☑️ Keep my email addresses private
+> ☑️ Block command line pushes that expose my email
+
+### Rules for a public dotfiles repo
+
+- No name, email, hostname, employer or internal URL in any committed file.
+  Identity is prompted and cached in `~/.config/chezmoi/chezmoi.toml`, which is
+  **not** part of this repo.
+- Use `<ID>+<user>@users.noreply.github.com` as your git email.
+- `chezmoi add --encrypt` for any file with secret content. Plain
+  `chezmoi add` on a secret is the one mistake that cannot be undone here:
+  scrapers index public commits within minutes, and forks outlive any
+  force-push.
+- Verify before pushing:
+
+  ```bash
+  gitleaks detect --redact -c .gitleaks.toml   # full history
+  git diff --cached                            # read it, every time
+  ```
+
+---
+
 ## Layout
 
 | Path | Purpose |
